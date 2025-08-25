@@ -1,7 +1,14 @@
 //greeting 
+function greet(message){
+    if(message == undefined){
+        document.write("good morning"  + "<br> <br>");
+    }else{
+        document.write(message  +"<br> <br>")
+    }
+}
 
-let greet =() =>document.write("Good Morning" + "<br>");
-greet();
+greet("hello Everyone ");
+
 
 
 // Area of cicle
