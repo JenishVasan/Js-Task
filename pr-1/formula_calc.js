@@ -15,4 +15,4 @@ var f4 = (a*a) + (b*b) + (c*c) - 2*a*b - 2*a*c + 2*b*c;
 console.log("(a-b-c)^2 = " + f4);
 
 var f5 = (a*a*a) - (3*a*a*b) + (3*a*b*b) - (b*b*b);
-console.log("(a-b)^3 = " + f5);
+console.log("(a-b)^3 = " + f5);     
