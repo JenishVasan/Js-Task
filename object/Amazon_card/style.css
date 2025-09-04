@@ -1,0 +1,178 @@
+* {
+    margin: 0;
+    box-sizing: border-box;
+    padding: 0;
+    
+ 
+  font-family: "Roboto", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 400;
+  font-style: normal;
+  
+
+}
+
+h2{
+  font-family: "Quicksand", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 700;
+  font-style: normal;
+}
+
+
+.container {
+  
+    width: 1320px;
+    margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    padding: 0 16px;
+
+}
+
+.row {
+    row-gap: 25px;
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin: 0 -16px;
+}
+
+.col-1 {
+    width: 8.33%;
+    
+   
+}
+
+.col-2 {
+
+    width: 16.66%;
+    
+    
+}
+
+.col-3 {
+
+
+    width: 25%;
+    
+
+}
+
+.col-4 {
+    width: 33.33%;
+
+}
+
+.col-5 {
+    width: 41.66%;
+   
+ 
+}
+
+.col-6 {
+    width: 50%;
+   
+}
+
+.col-7 {
+    width: 58.33%;
+   
+}
+.gap-10{
+    column-gap: 10px;
+}
+.col-12{
+    width: 100%;
+}
+.primary-background{
+    background-color: red;
+    border-radius: 10px;
+}
+section{
+  background-image: url(./images/Gemini_Generated_Image_o2hsuso2hsuso2hs.png);
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+/* .card{
+    padding: 30px 30px ;
+    padding-bottom: 50px;
+    
+    border-radius: 30px;
+    row-gap: 10px;
+
+    background: rgba(255, 255, 255, 0.1); 
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(15px); 
+
+    border-radius: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);        
+    
+} */
+.img-frame{
+    padding: 15px;
+    border-radius: 10px;
+    object-position: center;
+    object-fit: cover;
+    background-color:#F7F7F7;
+    width: 100% ;
+    aspect-ratio: 1/0.8;
+}
+.img-frame img {
+    object-position: center;
+    /* transform: scale(120%); */
+    width: 100%;
+    height: 100%;
+    /* aspect-ratio: 1/1; */
+}
+.d-flex{
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.jc-center{
+    justify-content: center;
+
+}
+.jc-start{
+    justify-content: start;
+}
+.align-items-center{
+    align-items: center;
+}
+section{
+    padding: 50px 50px  ;
+}
+.text-center{
+    text-align: center;
+}
+.card-wrap{
+    padding: 0 30px;
+}
+#product_description{
+
+   white-space: nowrap;
+   overflow: hidden;
+   text-overflow: ellipsis;
+}
+#info_container{
+    padding: 15px 0;
+}
+.card{
+    transition: all 0.5s;
+    /* box-shadow: rgba(100, 100, 111, 0.2) 0px 7px 29px 0px; */
+}
+img{
+    transition: all 0.3s;
+}
+#review_no{
+    margin-left: 5px;
+    color: gray;
+}
+.card:hover img{
+    scale: 1.03;
+}
