@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Blood Cell Model</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            background-color: #111827; /* Dark background for contrast */
+        }
+        canvas {
+            display: block;
+        }
+        .info-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 15px 20px;
+            background-color: rgba(17, 24, 39, 0.8);
+            border: 1px solid rgba(55, 65, 81, 0.5);
+            color: #f3f4f6;
+            border-radius: 12px;
+            max-width: 300px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            z-index: 10;
+        }
+        h1 {
+            font-size: 1.5rem;
+            margin: 0 0 10px 0;
+            color: #e5e7eb;
+        }
+        p {
+            font-size: 0.9rem;
+            margin: 0;
+            line-height: 1.5;
+            color: #d1d5db;
+        }
+        .label {
+            color: #f0f0f0;
+            font-family: 'Inter', sans-serif;
+            padding: 4px 10px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 6px;
+            font-size: 14px;
+            pointer-events: none;
+        }
+        /* Styles for the new details modal */
+        #details-modal {
+            display: none; /* Hidden by default */
+            position: absolute;
+            top: 15%; /* Moved to the upper part of the screen */
+            left: 50%;
+            transform: translateX(-50%); /* Only center horizontally */
+            width: 90%;
+            max-width: 500px;
+            padding: 25px 30px;
+            background-color: rgba(31, 41, 55, 0.9);
+            border: 1px solid rgba(75, 85, 99, 0.5);
+            color: #f9fafb;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            z-index: 100;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        /* New overlay style */
+        #modal-overlay {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            z-index: 99;
+            cursor: pointer;
+        }
+        #modal-overlay.visible,
+        #details-modal.visible {
+            display: block;
+        }
+        #details-title {
+            font-size: 1.75rem;
+            margin: 0 0 15px 0;
+            color: #fff;
+            font-weight: 600;
+        }
+        #details-description {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: #e5e7eb;
+        }
+            
+        #close-modal {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(75, 85, 99, 0.5);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            font-size: 18px;
+            line-height: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        #close-modal:hover {
+            background: rgba(107, 114, 128, 0.7);
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div class="info-panel">
+        <h1>Blood Cells Diorama</h1>
+        <p>An interactive 3D model of various blood cells. Click on a cell to see its details. Use your mouse to rotate, zoom, and pan.</p>
+    </div>
+
+    <!-- Details modal -->
+    <div id="modal-overlay"></div>
+    <div id="details-modal">
+        <button id="close-modal">&times;</button>
+        <h2 id="details-title"></h2>
+        <p id="details-description"></p>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+        let scene, camera, renderer, labelRenderer, controls;
+        const cells = [];
+        let raycaster, mouse;
+        
+        // State for camera animation and selection
+        let targetPosition = new THREE.Vector3();
+        let targetLookAt = new THREE.Vector3();
+        let isAnimatingCamera = false;
+        let selectedCell = null;
+        const defaultCameraPosition = new THREE.Vector3(0, 0, 30);
+
+
+        const cellData = {
+            'Red Blood Cell': 'Erythrocytes are the most common type of blood cell. They are responsible for transporting oxygen from the lungs to the body\'s tissues. Their unique biconcave shape increases the surface area-to-volume ratio, facilitating oxygen diffusion.',
+            'Neutrophil': 'The most abundant type of white blood cell, neutrophils are a key part of the innate immune system. They are phagocytes, meaning they engulf and destroy pathogens like bacteria. Their nucleus is characteristically multi-lobed.',
+            'Eosinophil': 'Eosinophils are involved in combating parasitic infections and play a role in allergic reactions. They contain large granules that stain red with eosin dye. Their nucleus is typically bi-lobed, resembling a pair of headphones.',
+            'Basophil': 'The least common type of granulocyte, basophils are best known for their role in allergic responses. They release histamine and other mediators of inflammation from their large, dark-staining granules.',
+            'Lymphocyte': 'Lymphocytes are crucial for adaptive immunity. They include T cells, B cells, and Natural Killer (NK) cells. They are characterized by a large, dark nucleus that takes up most of the cell volume, with a thin rim of cytoplasm.',
+            'Monocyte': 'Monocytes are the largest type of white blood cell. They are phagocytes that circulate in the bloodstream before migrating into tissues, where they differentiate into macrophages or dendritic cells to fight infection and clean up cellular debris. Their nucleus is often kidney-bean or C-shaped.'
+        };
+
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 25;
+            camera.position.copy(defaultCameraPosition);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            document.body.appendChild(renderer.domElement);
+            
+            labelRenderer = new CSS2DRenderer();
+            labelRenderer.setSize(window.innerWidth, window.innerHeight);
+            labelRenderer.domElement.style.position = 'absolute';
+            labelRenderer.domElement.style.top = '0px';
+            document.body.appendChild(labelRenderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+            scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.8);
+            directionalLight.position.set(10, 15, 10);
+            scene.add(directionalLight);
+
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.minDistance = 10;
+            controls.maxDistance = 100;
+
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+
+            createBloodCells();
+            
+            window.addEventListener('resize', onWindowResize, false);
+            window.addEventListener('click', onMouseClick, false);
+            
+            const closeModalElements = [document.getElementById('close-modal'), document.getElementById('modal-overlay')];
+            closeModalElements.forEach(el => {
+                el.addEventListener('click', () => {
+                    hideDetails();
+                });
+            });
+        }
+
+        function showDetails(cellObject) {
+            const modal = document.getElementById('details-modal');
+            const overlay = document.getElementById('modal-overlay');
+            const title = document.getElementById('details-title');
+            const description = document.getElementById('details-description');
+            const cellName = cellObject.userData.name;
+            
+            if (cellData[cellName]) {
+                title.textContent = cellName;
+                description.textContent = cellData[cellName];
+                modal.classList.add('visible');
+                overlay.classList.add('visible');
+            }
+
+            selectedCell = cellObject;
+            controls.enabled = false;
+
+            // Animate camera to focus on the selected cell
+            const offset = camera.position.clone().sub(cellObject.position).normalize().multiplyScalar(15);
+            targetPosition.copy(cellObject.position).add(offset);
+            targetLookAt.copy(cellObject.position);
+            isAnimatingCamera = true;
+
+            // Highlight selected cell and dim others
+            cells.forEach(cell => {
+                const isSelected = cell === selectedCell;
+                cell.traverse(child => {
+                    if (child.isMesh) {
+                        const material = child.material;
+                        if (child.userData.originalOpacity === undefined) {
+                            child.userData.originalOpacity = material.opacity;
+                            child.userData.originalTransparent = material.transparent;
+                            child.userData.originalEmissive = material.emissive.getHex();
+                        }
+                        material.transparent = true;
+                        material.opacity = isSelected ? child.userData.originalOpacity : 0.1;
+                        material.emissive.setHex(isSelected ? 0x222222 : 0x000000);
+                    }
+                });
+            });
+        }
+
+        function hideDetails() {
+            document.getElementById('details-modal').classList.remove('visible');
+            document.getElementById('modal-overlay').classList.remove('visible');
+
+            controls.enabled = false;
+
+            // Restore cell appearances
+            cells.forEach(cell => {
+                cell.traverse(child => {
+                    if (child.isMesh && child.userData.originalOpacity !== undefined) {
+                        child.material.opacity = child.userData.originalOpacity;
+                        child.material.transparent = child.userData.originalTransparent;
+                        child.material.emissive.setHex(child.userData.originalEmissive);
+                    }
+                });
+            });
+
+            // Animate camera back to default position
+            targetPosition.copy(defaultCameraPosition);
+            targetLookAt.set(0, 0, 0);
+            isAnimatingCamera = true;
+            selectedCell = null;
+        }
+
+        function onMouseClick(event) {
+            // Prevent clicks from triggering when the modal is open
+            if (selectedCell) return;
+            event.preventDefault();
+
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(scene.children, true);
+
+            if (intersects.length > 0) {
+                let clickedObject = intersects[0].object;
+                
+                // Traverse up to find the parent group with the name
+                while (clickedObject.parent && !clickedObject.userData.name) {
+                    clickedObject = clickedObject.parent;
+                }
+
+                if (clickedObject.userData.name) {
+                    showDetails(clickedObject);
+                }
+            }
+        }
+
+        function makeLabel(text, position) {
+            const div = document.createElement('div');
+            div.className = 'label';
+            div.textContent = text;
+            const label = new CSS2DObject(div);
+            label.position.copy(position);
+            return label;
+        }
+        
+        function createBloodCells() {
+            const rbc = createRBC();
+            rbc.position.set(0, 0, 0);
+            rbc.userData.name = 'Red Blood Cell';
+            cells.push(rbc);
+            scene.add(rbc);
+            rbc.add(makeLabel("Red Blood Cell", new THREE.Vector3(0, 5, 0)));
+
+            const neutrophil = createNeutrophil();
+            neutrophil.position.set(-15, 8, 0);
+            neutrophil.userData.name = 'Neutrophil';
+            cells.push(neutrophil);
+            scene.add(neutrophil);
+            neutrophil.add(makeLabel("Neutrophil", new THREE.Vector3(0, 6, 0)));
+
+            const eosinophil = createEosinophil();
+            eosinophil.position.set(15, 8, 0);
+            eosinophil.userData.name = 'Eosinophil';
+            cells.push(eosinophil);
+            scene.add(eosinophil);
+            eosinophil.add(makeLabel("Eosinophil", new THREE.Vector3(0, 6, 0)));
+            
+            const basophil = createBasophil();
+            basophil.position.set(20, -8, 0);
+            basophil.userData.name = 'Basophil';
+            cells.push(basophil);
+            scene.add(basophil);
+            basophil.add(makeLabel("Basophil", new THREE.Vector3(0, 6, 0)));
+
+            const lymphocyte = createLymphocyte();
+            lymphocyte.position.set(0, -12, 0);
+            lymphocyte.userData.name = 'Lymphocyte';
+            cells.push(lymphocyte);
+            scene.add(lymphocyte);
+            lymphocyte.add(makeLabel("Lymphocyte", new THREE.Vector3(0, 6, 0)));
+
+            const monocyte = createMonocyte();
+            monocyte.position.set(-20, -8, 0);
+            monocyte.userData.name = 'Monocyte';
+            cells.push(monocyte);
+            scene.add(monocyte);
+            monocyte.add(makeLabel("Monocyte", new THREE.Vector3(0, 7, 0)));
+        }
+
+        function createRBC() {
+            const points = [];
+            points.push(new THREE.Vector2(0, 3.5)); 
+            points.push(new THREE.Vector2(2, 3));
+            points.push(new THREE.Vector2(3.5, 1.5));
+            points.push(new THREE.Vector2(4, 0)); 
+            points.push(new THREE.Vector2(3.5, -1.5));
+            points.push(new THREE.Vector2(2, -3));
+            points.push(new THREE.Vector2(0, -3.5));
+            const geometry = new THREE.LatheGeometry(points, 32);
+            const material = new THREE.MeshStandardMaterial({ color: 0xcf2b2b, roughness: 0.6, metalness: 0.1 });
+            const rbc = new THREE.Mesh(geometry, material);
+            rbc.scale.set(0.8, 0.8, 0.8);
+            return rbc;
+        }
+
+        function createNeutrophil() {
+            const group = new THREE.Group();
+            const cytoGeo = new THREE.SphereGeometry(5, 32, 32);
+            const cytoMat = new THREE.MeshStandardMaterial({ color: 0xead1dc, transparent: true, opacity: 0.4 });
+            const cytoplasm = new THREE.Mesh(cytoGeo, cytoMat);
+            group.add(cytoplasm);
+
+            const nucleus = new THREE.Group();
+            const lobeMat = new THREE.MeshStandardMaterial({ color: 0x5a3d99, roughness: 0.4 });
+            const lobe1 = new THREE.Mesh(new THREE.SphereGeometry(1.5, 32, 32), lobeMat);
+            lobe1.position.set(-2, 1, 0);
+            const lobe2 = new THREE.Mesh(new THREE.SphereGeometry(1.4, 32, 32), lobeMat);
+            lobe2.position.set(0.5, -1.5, 0.5);
+            const lobe3 = new THREE.Mesh(new THREE.SphereGeometry(1.6, 32, 32), lobeMat);
+            lobe3.position.set(2, 1.5, -0.5);
+            nucleus.add(lobe1, lobe2, lobe3);
+            group.add(nucleus);
+            return group;
+        }
+
+        function createEosinophil() {
+            const group = new THREE.Group();
+            const cytoGeo = new THREE.SphereGeometry(5, 32, 32);
+            const cytoMat = new THREE.MeshStandardMaterial({ color: 0xfac0ac, transparent: true, opacity: 0.5 });
+            const cytoplasm = new THREE.Mesh(cytoGeo, cytoMat);
+            group.add(cytoplasm);
+            
+            const nucleus = new THREE.Group();
+            const lobeMat = new THREE.MeshStandardMaterial({ color: 0x6a4d9c, roughness: 0.4 });
+            const lobe1 = new THREE.Mesh(new THREE.SphereGeometry(1.8, 32, 32), lobeMat);
+            lobe1.position.set(-1.5, 0, 0);
+            const lobe2 = new THREE.Mesh(new THREE.SphereGeometry(1.8, 32, 32), lobeMat);
+            lobe2.position.set(1.5, 0, 0);
+            nucleus.add(lobe1, lobe2);
+            group.add(nucleus);
+
+            const granuleGeo = new THREE.SphereGeometry(0.3, 16, 16);
+            const granuleMat = new THREE.MeshStandardMaterial({ color: 0xe55f3a });
+            for (let i = 0; i < 100; i++) {
+                const granule = new THREE.Mesh(granuleGeo, granuleMat);
+                const phi = Math.random() * Math.PI * 2;
+                const costheta = Math.random() * 2 - 1;
+                const u = Math.random();
+                const theta = Math.acos(costheta);
+                const r = 4.8 * Math.cbrt(u);
+                granule.position.set(r * Math.sin(theta) * Math.cos(phi), r * Math.sin(theta) * Math.sin(phi), r * Math.cos(theta));
+                group.add(granule);
+            }
+            return group;
+        }
+
+        function createBasophil() {
+            const group = new THREE.Group();
+            const cytoGeo = new THREE.SphereGeometry(5.2, 32, 32);
+            const cytoMat = new THREE.MeshStandardMaterial({ color: 0xd1c4e9, transparent: true, opacity: 0.3 });
+            const cytoplasm = new THREE.Mesh(cytoGeo, cytoMat);
+            group.add(cytoplasm);
+
+            const granuleGeo = new THREE.SphereGeometry(0.6, 16, 16);
+            const granuleMat = new THREE.MeshStandardMaterial({ color: 0x303f9f });
+            for (let i = 0; i < 80; i++) {
+                const granule = new THREE.Mesh(granuleGeo, granuleMat);
+                const phi = Math.random() * Math.PI * 2;
+                const costheta = Math.random() * 2 - 1;
+                const u = Math.random();
+                const theta = Math.acos(costheta);
+                const r = 4.9 * Math.cbrt(u);
+                granule.position.set(r * Math.sin(theta) * Math.cos(phi), r * Math.sin(theta) * Math.sin(phi), r * Math.cos(theta));
+                group.add(granule);
+            }
+            return group;
+        }
+
+        function createLymphocyte() {
+            const group = new THREE.Group();
+            const cytoGeo = new THREE.SphereGeometry(4.5, 32, 32);
+            const cytoMat = new THREE.MeshStandardMaterial({ color: 0xb3e5fc, transparent: true, opacity: 0.6 });
+            const cytoplasm = new THREE.Mesh(cytoGeo, cytoMat);
+            group.add(cytoplasm);
+
+            const nucleusGeo = new THREE.SphereGeometry(3.8, 32, 32);
+            const nucleusMat = new THREE.MeshStandardMaterial({ color: 0x4a2a88, roughness: 0.5 });
+            const nucleus = new THREE.Mesh(nucleusGeo, nucleusMat);
+            group.add(nucleus);
+            return group;
+        }
+        
+        function createMonocyte() {
+            const group = new THREE.Group();
+            const cytoGeo = new THREE.SphereGeometry(6, 32, 32);
+            const cytoMat = new THREE.MeshStandardMaterial({ color: 0xcfd8dc, transparent: true, opacity: 0.5 });
+            const cytoplasm = new THREE.Mesh(cytoGeo, cytoMat);
+            group.add(cytoplasm);
+
+            const points = [];
+            points.push(new THREE.Vector2(0, 2));
+            points.push(new THREE.Vector2(2, 2.5));
+            points.push(new THREE.Vector2(2.5, 1));
+            points.push(new THREE.Vector2(1.5, -1));
+            points.push(new THREE.Vector2(2.5, -2.5));
+            points.push(new THREE.Vector2(0, -3));
+            const geometry = new THREE.LatheGeometry(points, 32);
+            const material = new THREE.MeshStandardMaterial({ color: 0x7e57c2, roughness: 0.6 });
+            const nucleus = new THREE.Mesh(geometry, material);
+            nucleus.rotation.z = Math.PI / 4;
+            group.add(nucleus);
+            return group;
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (isAnimatingCamera) {
+                camera.position.lerp(targetPosition, 0.05);
+                controls.target.lerp(targetLookAt, 0.05);
+                const distance = camera.position.distanceTo(targetPosition);
+                if (distance < 0.1) {
+                    isAnimatingCamera = false;
+                    controls.enabled = true;
+                }
+            }
+
+            // Keep cell rotation even when modal is open
+            cells.forEach((cell, i) => {
+                cell.rotation.x += 0.001 + i * 0.00001;
+                cell.rotation.y += 0.002 + i * 0.00001;
+            });
+            controls.update();
+            renderer.render(scene, camera);
+            labelRenderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        init();
+        animate();
+    </script>
+</body>
+</html>
+
+
+
