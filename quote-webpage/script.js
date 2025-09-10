@@ -367,21 +367,26 @@ let str ="";
 data.forEach((obj)=>{
 
 
-str +=` <div class="col-12 d-flex jc-center">
-                        <div class="col-12 d-flex jc-center">
-                            <div class="col-3" >
-                                <div id="auther-img">
-                                    <img src="${obj.imgurl}" alt="img">
+str +=` <div class="col-12 d-flex jc-center card">
+                        <div class="col-12 d-flex"> 
+                            <div class="col-12 d-flex jc-center color-white ">
+                                <div class="birth-place">
+                                    Birth-place : ${obj.birthPlace}
+                                </div>
+                                <div class="col-3" >
+                                    <div id="auther-img">
+                                        <img src="${obj.imgurl}" alt="img">
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="col-8 quote-box ">
-                            <div class= "text-center">
-                                <p id="quote col-12"><span >"</span>${obj.quote}<span>"</span></p>
-            
-                            </div>
-                            <div class="text-end mt-10">
-                                ~${obj.author}
+                            <div class="col-12 quote-box ">
+                                <div class= "text-center">
+                                    <p id="quote col-12"><span >"</span>${obj.quote} <span>"</span></p>
+                
+                                </div>
+                                <div class="text-end mt-10">
+                                    ~${obj.author}
+                                </div>
                             </div>
                         </div>
                     </div>`
