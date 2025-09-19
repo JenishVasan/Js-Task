@@ -1,0 +1,56 @@
+body{
+    background: #c9c9c9;
+    color: white ;
+}
+
+*{
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+.option-box{
+    background-color: rgb(172, 169, 215);
+    color: rgb(0, 0, 0);
+    cursor: pointer;
+    transition: box-shadow 0.3s ease, background-color 0.3s ease;
+}
+.option-box:hover{
+    
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    transition: all 0.5s;
+}
+
+.option-box.correct {
+    background-color: #28a745; /* A nice green */
+    color: white;
+}
+.option-box.incorrect {
+    background-color: #dc3545; /* A nice red */
+    color: white;
+}
+.time{
+    background-color: rgb(112, 95, 95);
+    color: white;
+}
+
+.question-row {
+    background-color: antiquewhite;
+    color: #000;
+    
+}
+.question-box{
+    min-height: 100px;
+}
+.timeline{
+    background-color: red;
+    height: 3px;
+    top: 0px;
+    left: 0;
+}
+h1{
+    color: #000;
+}
+.start-btn{
+    background-color: #28a745;
+}
